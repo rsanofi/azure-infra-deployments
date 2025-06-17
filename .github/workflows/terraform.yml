@@ -6,44 +6,30 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to apply (dev or prod)'
-        required: true
-        default: 'dev'
-        type: choice
-        options:
-          - dev
-          - prod
 
 jobs:
-  terraform-plan:
-    name: Terraform Plan
+  dev-plan:
+    name: Dev Plan
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        environment: [dev, prod]
     env:
-      ENVIRONMENT: ${{ matrix.environment }}
+      ENVIRONMENT: dev
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      TF_VAR_environment: ${{ matrix.environment }}
+      TF_VAR_environment: dev
     defaults:
       run:
         working-directory: .
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.7.5
       - name: Terraform Format
         run: terraform fmt -check -recursive
-
       - name: Terraform Init
         run: terraform init -backend-config=environments/${{ env.ENVIRONMENT }}/backend.config
 
@@ -59,23 +45,94 @@ jobs:
           name: tfplan-${{ env.ENVIRONMENT }}
           path: tfplan-${{ env.ENVIRONMENT }}.out
 
-  terraform-apply:
-    name: Terraform Apply
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+  dev-apply:
+    name: Dev Apply
+    if: github.event_name == 'workflow_dispatch'
+    needs: dev-plan
     runs-on: ubuntu-latest
+    environment:
+      name: apply
     env:
-      ENVIRONMENT: ${{ github.event.inputs.environment }}
+      ENVIRONMENT: dev
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      TF_VAR_environment: dev
     defaults:
       run:
         working-directory: .
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-${{ env.ENVIRONMENT }}
+      - name: Terraform Init
+        run: terraform init -backend-config=environments/${{ env.ENVIRONMENT }}/backend.config
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan-${{ env.ENVIRONMENT }}.out
+        
+  prod-plan:
+    name: Prod Plan
+    runs-on: ubuntu-latest
+    env:
+      ENVIRONMENT: prod
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      TF_VAR_environment: prod
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+      - name: Terraform Format
+        run: terraform fmt -check -recursive
+      - name: Terraform Init
+        run: terraform init -backend-config=environments/${{ env.ENVIRONMENT }}/backend.config
 
+      - name: Terraform Validate (Lint)
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -var-file=environments/${{ env.ENVIRONMENT }}/${{ env.ENVIRONMENT }}.tfvars -out=tfplan-${{ env.ENVIRONMENT }}.out
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ env.ENVIRONMENT }}
+          path: tfplan-${{ env.ENVIRONMENT }}.out
+
+  prod-apply:
+    name: Prod Apply
+    runs-on: ubuntu-latest
+    environment:
+      name: apply
+    env:
+      ENVIRONMENT: prod
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      TF_VAR_environment: prod
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -91,9 +148,4 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan-${{ env.ENVIRONMENT }}.out
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          TF_IN_AUTOMATION: true
+        
