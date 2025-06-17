@@ -51,7 +51,7 @@ jobs:
     needs: dev-plan
     runs-on: ubuntu-latest
     environment:
-      name: apply
+      name: dev-apply
     env:
       ENVIRONMENT: dev
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
