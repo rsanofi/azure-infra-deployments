@@ -55,7 +55,7 @@ virtual_networks = {
 subnets = {
   subnet1 = {
     vnet_key          = "virtualnetwork1"
-    vnet_name         = rsanofidevvnet
+    vnet_name         = "rsanofidevvnet"
     name              = "loadbalancer"
     address_prefixes  = ["10.0.1.0/24"]
     service_endpoints = ["Microsoft.Sql", "Microsoft.AzureCosmosDB"]
@@ -63,7 +63,7 @@ subnets = {
   },
   subnet2 = {
     vnet_key          = "virtualnetwork1"
-    vnet_name         = rsanofidevvnet
+    vnet_name         = "rsanofidevvnet"
     name              = "app"
     address_prefixes  = ["10.0.2.0/24"]
     service_endpoints = null
