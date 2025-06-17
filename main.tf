@@ -13,6 +13,7 @@ module "storage" {
   queues              = var.queues
   file_shares         = var.file_shares
   tables              = var.tables
+  depends_on          = [module.resourcegroup]
 }
 
 module "vnet" {
@@ -22,4 +23,5 @@ module "vnet" {
   net_additional_tags = var.net_additional_tags
   virtual_networks    = var.virtual_networks
   subnets             = var.subnets
+  depends_on          = [module.resourcegroup]
 }
