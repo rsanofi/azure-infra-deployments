@@ -10,9 +10,9 @@ resource_groups = {
 }
 
 resource_group_name = "dev-rg"
-sa_additional_tags  = { 
+sa_additional_tags = {
   environment = "dev"
-  iac = "terraform" 
+  iac         = "terraform"
 }
 storage_accounts = {
   devsa = {
@@ -34,15 +34,15 @@ containers = {
     container_access_type = "private"
   }
 }
-blobs = {}
-queues = {}
+blobs       = {}
+queues      = {}
 file_shares = {}
-tables = {}
+tables      = {}
 
-net_location        = null
-net_additional_tags = { 
+net_location = null
+net_additional_tags = {
   environment = "dev"
-  iac = "terraform"
+  iac         = "terraform"
 }
 virtual_networks = {
   virtualnetwork1 = {
