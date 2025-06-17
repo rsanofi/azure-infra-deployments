@@ -5,8 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
-    # No inputs for plan, only for manual apply
+  
 
 jobs:
   terraform-plan:
